@@ -1,0 +1,25 @@
+# Fonction pour générer un mot de passe aléatoire
+function GenererMotDePasse {
+    $caracteres = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+"
+    $motDePasse = ""
+    for ($i = 0; $i -lt 12; $i++) {
+        $motDePasse += $caracteres[(Get-Random -Minimum 0 -Maximum $caracteres.Length)]
+    }
+    return $motDePasse
+}
+
+# Boucle pour créer 5 utilisateurs
+for ($i = 1; $i -le 5; $i++) {
+    # Générer le nom d'utilisateur
+    $nomUtilisateur = "Utilisateur$i"
+
+    # Générer un mot de passe aléatoire
+    $motDePasse = GenererMotDePasse
+
+    # Créer l'utilisateur avec le nom d'utilisateur et le mot de passe
+    New-ADUser -Name "Utilisateur $i" -SamAccountName $nomUtilisateur -UserPrincipalName "$nomUtilisateur@votredomaine.com" -AccountPassword (ConvertTo-SecureString -AsPlainText $motDePasse -Force) -Enabled $true
+
+    # Afficher le nom d'utilisateur et le mot de passe généré
+    Write-Host "Utilisateur créé : $nomUtilisateur"
+    Write-Host "Mot de passe : $motDePasse"
+}
