@@ -1,3 +1,6 @@
+# Importer le module Active Directory (s'assurer que le module est disponible)
+Import-Module ActiveDirectory
+
 # Fonction pour générer un mot de passe aléatoire
 function GenererMotDePasse {
     $caracteres = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+"
@@ -8,18 +11,36 @@ function GenererMotDePasse {
     return $motDePasse
 }
 
-# Boucle pour créer 5 utilisateurs
-for ($i = 1; $i -le 5; $i++) {
-    # Générer le nom d'utilisateur
-    $nomUtilisateur = "Utilisateur$i"
+# Créer des OU (Organizational Units)
+$ouNames = @("Domaine1", "Domaine2", "Domaine3")
+foreach ($ouName in $ouNames) {
+    if (-not (Get-ADOrganizationalUnit -Filter "Name -eq '$ouName'" -ErrorAction SilentlyContinue)) {
+        New-ADOrganizationalUnit -Name $ouName -Path "DC=votredomaine,DC=com"
+        Write-Host "OU créé : $ouName"
+    } else {
+        Write-Host "OU déjà existant : $ouName"
+    }
+}
 
-    # Générer un mot de passe aléatoire
-    $motDePasse = GenererMotDePasse
+# Boucle pour créer 5 utilisateurs dans chaque OU
+foreach ($ouName in $ouNames) {
+    for ($i = 1; $i -le 5; $i++) {
+        # Générer le nom d'utilisateur
+        $nomUtilisateur = "Utilisateur${i}_${ouName}"
 
-    # Créer l'utilisateur avec le nom d'utilisateur et le mot de passe
-    New-ADUser -Name "Utilisateur $i" -SamAccountName $nomUtilisateur -UserPrincipalName "$nomUtilisateur@votredomaine.com" -AccountPassword (ConvertTo-SecureString -AsPlainText $motDePasse -Force) -Enabled $true
+        # Générer un mot de passe aléatoire
+        $motDePasse = GenererMotDePasse
 
-    # Afficher le nom d'utilisateur et le mot de passe généré
-    Write-Host "Utilisateur créé : $nomUtilisateur"
-    Write-Host "Mot de passe : $motDePasse"
+        # Créer l'utilisateur avec le nom d'utilisateur et le mot de passe
+        New-ADUser -Name "Utilisateur $i" `
+                   -SamAccountName $nomUtilisateur `
+                   -UserPrincipalName "$nomUtilisateur@votredomaine.com" `
+                   -AccountPassword (ConvertTo-SecureString -AsPlainText $motDePasse -Force) `
+                   -Enabled $true `
+                   -Path "OU=$ouName,DC=votredomaine,DC=com"
+
+        # Afficher le nom d'utilisateur et le mot de passe généré
+        Write-Host "Utilisateur créé : $nomUtilisateur dans $ouName"
+        Write-Host "Mot de passe : $motDePasse"
+    }
 }
