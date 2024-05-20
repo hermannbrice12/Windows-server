@@ -11,14 +11,32 @@ function GenererMotDePasse {
     return $motDePasse
 }
 
+# Fonction pour enregistrer les actions dans un fichier journal
+function LogAction {
+    param (
+        [string]$message
+    )
+    $logFile = "C:\Logs\ADUserCreation.log"
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $logMessage = "$timestamp - $message"
+    Add-Content -Path $logFile -Value $logMessage
+}
+
 # Créer des OU (Organizational Units)
 $ouNames = @("Domaine1", "Domaine2", "Domaine3")
 foreach ($ouName in $ouNames) {
-    if (-not (Get-ADOrganizationalUnit -Filter "Name -eq '$ouName'" -ErrorAction SilentlyContinue)) {
-        New-ADOrganizationalUnit -Name $ouName -Path "DC=votredomaine,DC=com"
-        Write-Host "OU créé : $ouName"
-    } else {
-        Write-Host "OU déjà existant : $ouName"
+    try {
+        if (-not (Get-ADOrganizationalUnit -Filter "Name -eq '$ouName'" -ErrorAction Stop)) {
+            New-ADOrganizationalUnit -Name $ouName -Path "DC=votredomaine,DC=com" -ErrorAction Stop
+            Write-Host "OU créé : $ouName"
+            LogAction "OU créé : $ouName"
+        } else {
+            Write-Host "OU déjà existant : $ouName"
+            LogAction "OU déjà existant : $ouName"
+        }
+    } catch {
+        Write-Host "Erreur lors de la création de l'OU $ouName : $_"
+        LogAction "Erreur lors de la création de l'OU $ouName : $_"
     }
 }
 
@@ -31,16 +49,22 @@ foreach ($ouName in $ouNames) {
         # Générer un mot de passe aléatoire
         $motDePasse = GenererMotDePasse
 
-        # Créer l'utilisateur avec le nom d'utilisateur et le mot de passe
-        New-ADUser -Name "Utilisateur $i" `
-                   -SamAccountName $nomUtilisateur `
-                   -UserPrincipalName "$nomUtilisateur@votredomaine.com" `
-                   -AccountPassword (ConvertTo-SecureString -AsPlainText $motDePasse -Force) `
-                   -Enabled $true `
-                   -Path "OU=$ouName,DC=votredomaine,DC=com"
+        try {
+            # Créer l'utilisateur avec le nom d'utilisateur et le mot de passe
+            New-ADUser -Name "Utilisateur $i" `
+                       -SamAccountName $nomUtilisateur `
+                       -UserPrincipalName "$nomUtilisateur@votredomaine.com" `
+                       -AccountPassword (ConvertTo-SecureString -AsPlainText $motDePasse -Force) `
+                       -Enabled $true `
+                       -Path "OU=$ouName,DC=votredomaine,DC=com" -ErrorAction Stop
 
-        # Afficher le nom d'utilisateur et le mot de passe généré
-        Write-Host "Utilisateur créé : $nomUtilisateur dans $ouName"
-        Write-Host "Mot de passe : $motDePasse"
+            # Afficher le nom d'utilisateur et le mot de passe généré
+            Write-Host "Utilisateur créé : $nomUtilisateur dans $ouName"
+            Write-Host "Mot de passe : $motDePasse"
+            LogAction "Utilisateur créé : $nomUtilisateur dans $ouName avec mot de passe : $motDePasse"
+        } catch {
+            Write-Host "Erreur lors de la création de l'utilisateur $nomUtilisateur dans $ouName : $_"
+            LogAction "Erreur lors de la création de l'utilisateur $nomUtilisateur dans $ouName : $_"
+        }
     }
 }
