@@ -40,18 +40,26 @@ foreach ($ouName in $ouNames) {
     }
 }
 
-# Boucle pour créer 5 utilisateurs dans chaque OU
+# Boucle pour créer 10 utilisateurs répartis dans les OUs
+$totalUsers = 10
+$usersPerOU = [math]::Ceiling($totalUsers / $ouNames.Count)
+$userCounter = 1
+
 foreach ($ouName in $ouNames) {
-    for ($i = 1; $i -le 5; $i++) {
+    for ($i = 1; $i -le $usersPerOU; $i++) {
+        if ($userCounter -gt $totalUsers) {
+            break
+        }
+
         # Générer le nom d'utilisateur
-        $nomUtilisateur = "Utilisateur${i}_${ouName}"
+        $nomUtilisateur = "Utilisateur${userCounter}_${ouName}"
 
         # Générer un mot de passe aléatoire
         $motDePasse = GenererMotDePasse
 
         try {
             # Créer l'utilisateur avec le nom d'utilisateur et le mot de passe
-            New-ADUser -Name "Utilisateur $i" `
+            New-ADUser -Name "Utilisateur $userCounter" `
                        -SamAccountName $nomUtilisateur `
                        -UserPrincipalName "$nomUtilisateur@votredomaine.com" `
                        -AccountPassword (ConvertTo-SecureString -AsPlainText $motDePasse -Force) `
@@ -66,5 +74,7 @@ foreach ($ouName in $ouNames) {
             Write-Host "Erreur lors de la création de l'utilisateur $nomUtilisateur dans $ouName : $_"
             LogAction "Erreur lors de la création de l'utilisateur $nomUtilisateur dans $ouName : $_"
         }
+
+        $userCounter++
     }
 }
