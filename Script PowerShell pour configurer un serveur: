@@ -1,0 +1,25 @@
+# Variables
+$ServerName = "NewServer"
+$AdminUser = "Administrator"
+$AdminPassword = "P@ssw0rd123"
+
+# Créer une nouvelle machine virtuelle (exemple avec Hyper-V)
+New-VM -Name $ServerName -MemoryStartupBytes 2GB -NewVHDPath "C:\Hyper-V\$ServerName\$ServerName.vhdx" -NewVHDSizeBytes 20GB -SwitchName "Default Switch"
+
+# Démarrer la machine virtuelle
+Start-VM -Name $ServerName
+
+# Configurer le mot de passe de l'utilisateur Administrateur
+$SecurePassword = ConvertTo-SecureString $AdminPassword -AsPlainText -Force
+Invoke-Command -VMName $ServerName -ScriptBlock {
+    param ($SecurePassword)
+    Set-LocalUser -Name "Administrator" -Password $SecurePassword
+} -ArgumentList $SecurePassword
+
+# Installer des rôles et fonctionnalités (exemple avec IIS)
+Invoke-Command -VMName $ServerName -ScriptBlock {
+    Install-WindowsFeature -Name Web-Server -IncludeManagementTools
+}
+
+# Afficher un message de confirmation
+Write-Host "Le serveur $ServerName a été créé et configuré avec succès."
